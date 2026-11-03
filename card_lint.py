@@ -3,6 +3,8 @@ import re, sys
 
 PIN = re.compile(r'<link rel="stylesheet" href="https://cdn\.jsdelivr\.net/gh/aftechnet/claude-card@[0-9a-f]{40}/card\.css">')
 
+JARGON = {"git","merge","mr","commit","deploy","ct","claim","kb","hash","sha","api","repo","pr","sql"}
+
 def lint(html: str) -> list[str]:
     errs = []
     if not PIN.search(html): errs.append("no pinned card.css link")
@@ -19,6 +21,11 @@ def lint(html: str) -> list[str]:
         if "Show details" not in body and "<small>" not in body:
             errs.append("option without 'what happens next' line")
     if re.search(r'class="(t )?r"', html): errs.append("warn: red used (only for can't-undo)")
+    if 'class="t ' in html and 'class="s"' not in html: errs.append("live change without Not touched / Undo line (class s)")
+    if "Live ·" in html: errs.append("old tag wording: use Changes now · low/medium/high risk")
+    vis = re.sub(r"<[^>]+>", " ", re.sub(r"<h2 class=\"sr-only\">.*?</h2>|onclick=\"[^\"]*\"", "", html))
+    jar = sorted({w for w in re.findall(r"[A-Za-z]+", vis) if w.lower() in JARGON})
+    if jar: errs.append("warn: tech words on card: " + ", ".join(jar))
     return errs
 
 if __name__ == "__main__":
