@@ -9,3 +9,5 @@ Load it pinned to a commit (never @main in cards, it is cached and can change):
 
 Classes: `.f` flow row (boxes `.g` green done, `.u` blue this yes, `.a` amber open, `.n` gray later, `.r` red broken), `.o` option row (`.o.p` main), `.t` tag, `.bar` bar row.
 Change it with a new commit, then update the commit in the card skill. Old commits keep working.
+
+Rules checker: `python3 card_lint.py card.html` (tests: `pytest test_card_lint.py`). It checks structure only, not clarity.
