@@ -9,7 +9,12 @@ def lint(html: str) -> list[str]:
     errs = []
     if not PIN.search(html): errs.append("no pinned card.css link")
     if "<style" in html: errs.append("has <style> block")
-    if len(html) > 1100: errs.append(f"too long: {len(html)} > 1100")
+    folds = re.findall(r"<details>.*?</details>", html, re.S)
+    vis_len = len(re.sub(r"<details>.*?</details>", "", html, flags=re.S))
+    if vis_len > 1100: errs.append(f"too long: {vis_len} > 1100 (fold not counted)")
+    if any(len(f) > 500 for f in folds): errs.append("fold too long: > 500")
+    if len(folds) > 1: errs.append("more than one fold")
+    if re.search(r"sendPrompt\('yes'\)", html): errs.append("warn: bare 'yes' button: name the card ('yes cut plan')")
     if "→" not in html and 'class="bar"' not in html: errs.append("no flow arrow or bars")
     btns = re.findall(r'<button class="o( p)?"[^>]*>(.*?)</button>', html, re.S)
     if not btns: errs.append("no option buttons")
