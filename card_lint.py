@@ -5,6 +5,25 @@ PIN = re.compile(r'<link rel="stylesheet" href="https://cdn\.jsdelivr\.net/gh/af
 
 JARGON = {"git","merge","mr","commit","deploy","ct","claim","kb","hash","sha","api","repo","pr","sql"}
 
+def v15_checks(html: str) -> list[str]:
+    """v1.5: short sentences, true-scale bars, card id on change buttons, one doubt line."""
+    errs = []
+    vis = re.sub(r"<details>.*?</details>|<h2 class=\"sr-only\">.*?</h2>|onclick=\"[^\"]*\"", "", html, flags=re.S)
+    for frag in re.split(r"<[^>]+>", vis):
+        for sent in re.split(r"[.!?](?:\s|$)|\u00b7", frag):
+            n = len(re.findall(r"[\w%'/-]+", sent))
+            if n > 15: errs.append(f"sentence over 15 words ({n}): {sent.strip()[:40]}")
+    for w, txt in re.findall(r'<div class="[a-z]+" style="width:(\d+(?:\.\d+)?)%">([^<]*)</div>', html):
+        m = re.search(r"(\d+(?:\.\d+)?)\s*of\s*(\d+(?:\.\d+)?)", txt) or re.fullmatch(r"\s*(\d+(?:\.\d+)?)%\s*", txt)
+        if not m: continue
+        want = float(m.group(1)) / float(m.group(2)) * 100 if m.lastindex == 2 else float(m.group(1))
+        if abs(float(w) - want) > 2: errs.append(f"bar width {w}% does not match its number '{txt.strip()}' ({want:.0f}%)")
+    for btn in re.findall(r'<button class="o[^"]*"[^>]*>.*?</button>', html, re.S):
+        if "Changes now" in btn and not re.search(r"sendPrompt\('[^']*#\w+[^']*'\)", btn):
+            errs.append("change button without card id: send 'yes NAME #HHMM'")
+    if html.count('class="dbt"') > 1: errs.append("more than one doubt line")
+    return errs
+
 def lint(html: str) -> list[str]:
     errs = []
     if not PIN.search(html): errs.append("no pinned card.css link")
@@ -15,6 +34,7 @@ def lint(html: str) -> list[str]:
     if any(len(f) > 500 for f in folds): errs.append("fold too long: > 500")
     if len(folds) > 1: errs.append("more than one fold")
     if re.search(r"sendPrompt\('yes'\)", html): errs.append("warn: bare 'yes' button: name the card ('yes cut plan')")
+    errs += v15_checks(html)
     if "→" not in html and 'class="bar"' not in html: errs.append("no flow arrow or bars")
     btns = re.findall(r'<button class="o( p)?"[^>]*>(.*?)</button>', html, re.S)
     if not btns: errs.append("no option buttons")

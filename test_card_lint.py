@@ -19,3 +19,13 @@ def test_fold_not_counted():
 def test_fold_too_long(): assert any('fold too long' in e for e in lint(GOOD+'<details>'+'s'*600+'</details>'))
 def test_bare_yes_warn(): assert any("bare 'yes'" in e for e in lint(GOOD))
 def test_named_yes_ok(): assert not any("bare 'yes'" in e for e in lint(GOOD.replace("'yes'","'yes cut plan'")))
+def test_long_sentence(): assert any('over 15 words' in e for e in lint(GOOD.replace('<b>x</b>','<b>'+' '.join(['word']*16)+'</b>')))
+def test_short_sentences_ok(): assert not any('over 15 words' in e for e in lint(GOOD))
+def test_fold_sentence_not_counted(): assert not any('over 15 words' in e for e in lint(GOOD+'<details><summary>How I know</summary>'+' '.join(['w']*30)+'</details>'))
+BAR='<div class="bar"><span>L</span><div class="g" style="width:{}%">{}</div></div>'
+def test_bar_mismatch(): assert any('bar width' in e for e in lint(GOOD+BAR.format(8,'4%')))
+def test_bar_of_ok(): assert not any('bar width' in e for e in lint(GOOD+BAR.format(69,'11 of 16')+BAR.format(4,'4%')))
+CH='<button class="o p" onclick="sendPrompt(\'{}\')"><i>Do<small>x</small></i><span class="t g">Changes now · low risk</span></button><div class="s">Not touched: a · Undo: b</div>'
+def test_change_needs_id(): assert any('card id' in e for e in lint(L+'→'+CH.format('yes publish')))
+def test_change_with_id_ok(): assert not any('card id' in e for e in lint(L+'→'+CH.format('yes publish #0410')))
+def test_one_doubt(): assert any('doubt' in e for e in lint(GOOD+'<div class="dbt">a</div><div class="dbt">b</div>'))
